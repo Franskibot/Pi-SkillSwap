@@ -1,0 +1,106 @@
+// Pi SkillSwap Smart Contract
+CONTRACT PiSkillSwap {
+
+    // Struttura per uno scambio
+    STRUCT Exchange {
+        id: string,
+        userA: address,
+        userB: address,
+        skillOffered: string,
+        skillRequested: string,
+        duration: integer,         // durata in minuti
+        depositA: float,
+        depositB: float,
+        startTime: timestamp,
+        status: enum { CREATED, ACTIVE, COMPLETED, DISPUTED },
+        disputeVotes: mapping(address => bool)
+    }
+
+    // Stato: mappa di scambi
+    STATE exchanges: mapping(string => Exchange)
+    CONSTANT feeRate: float = 0.005  // 0.5%
+    CONSTANT charityHub: address = PiCharityHubAddress
+
+    // Funzione per creare uno scambio
+    FUNCTION createExchange(userA, userB, skillOffered, skillRequested, duration, deposit) {
+        exchangeID = generateUniqueID()
+        IF getBalance(userA) < deposit OR getBalance(userB) < deposit THEN
+            REVERT "Saldo insufficiente per deposito cauzionale"
+        ENDIF
+        // Deduce i depositi dai bilanci degli utenti
+        deductBalance(userA, deposit)
+        deductBalance(userB, deposit)
+        exchanges[exchangeID] = Exchange(
+            id = exchangeID,
+            userA = userA,
+            userB = userB,
+            skillOffered = skillOffered,
+            skillRequested = skillRequested,
+            duration = duration,
+            depositA = deposit,
+            depositB = deposit,
+            startTime = currentTime(),
+            status = CREATED,
+            disputeVotes = {}
+        )
+        RETURN exchangeID
+    }
+
+    // Avvia lo scambio
+    FUNCTION startExchange(exchangeID) {
+        exchange = exchanges[exchangeID]
+        IF exchange.status != CREATED THEN
+            REVERT "Scambio non valido o già avviato"
+        ENDIF
+        exchange.status = ACTIVE
+    }
+
+    // Esegue lo scambio dopo la scadenza del tempo
+    FUNCTION executeExchange(exchangeID) {
+        exchange = exchanges[exchangeID]
+        IF currentTime() < exchange.startTime + exchange.duration * 60 THEN
+            REVERT "Scambio in corso"
+        ENDIF
+
+        totalValue = exchange.depositA + exchange.depositB
+        fee = totalValue * feeRate
+        netValue = totalValue - fee
+
+        // Verifica tramite API Explore Pi
+        IF NOT verifyTransactionWithExplorePiAPI(exchangeID) THEN
+            REVERT "Verifica transazione fallita"
+        ENDIF
+
+        transferFunds(charityHub, fee)
+        transferFunds(exchange.userA, netValue / 2)
+        transferFunds(exchange.userB, netValue / 2)
+        exchange.status = COMPLETED
+    }
+
+    // Gestione delle contestazioni tramite voto distribuito
+    FUNCTION disputeExchange(exchangeID, voterAddress, vote) {
+        exchange = exchanges[exchangeID]
+        IF exchange.status != COMPLETED THEN
+            REVERT "Solo scambi completati possono essere contestati"
+        ENDIF
+        exchange.disputeVotes[voterAddress] = vote
+    }
+
+    // Risoluzione della contestazione
+    FUNCTION resolveDispute(exchangeID) {
+        exchange = exchanges[exchangeID]
+        IF majorityVotesContested(exchange.disputeVotes) THEN
+            refundFunds(exchange.userA, exchange.depositA)
+            refundFunds(exchange.userB, exchange.depositB)
+            exchange.status = DISPUTED
+        ELSE
+            exchange.status = COMPLETED
+        ENDIF
+    }
+
+    // Funzione helper per verificare la transazione via Explore Pi API
+    FUNCTION verifyTransactionWithExplorePiAPI(exchangeID) RETURNS boolean {
+        response = callExplorePiAPI("verifyTransaction", { "exchangeID": exchangeID })
+        RETURN response.valid
+    }
+}
