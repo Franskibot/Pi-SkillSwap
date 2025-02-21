@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { PiButton } from '@pi-community/toolkit';
 import { useNavigate } from 'react-router-dom';
+import { PiButton } from './common/PiComponents';
 
 const Search = () => {
   const navigate = useNavigate();

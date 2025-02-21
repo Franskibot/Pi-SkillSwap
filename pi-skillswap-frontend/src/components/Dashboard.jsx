@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PiSelect, PiInput, PiButton } from '@pi-community/toolkit';
 import { useNavigate } from 'react-router-dom';
+import { PiSelect, PiInput, PiButton } from './common/PiComponents';
 
 const Dashboard = () => {
   const navigate = useNavigate();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Pi } from '@pinetwork-js/sdk';
+import { PiButton } from './common/PiComponents';
 
 const ExchangeDetail = () => {
   const { id } = useParams();

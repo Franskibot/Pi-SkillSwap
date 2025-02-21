@@ -6,6 +6,7 @@ import Search from './components/Search';
 import ExchangeDetail from './components/ExchangeDetail';
 import TransactionHistory from './components/TransactionHistory';
 import DisputeManager from './components/DisputeManager';
+import './styles/components.css';
 
 function App() {
   return (

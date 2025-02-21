@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PiButton, PiInput } from '@pi-community/toolkit';
+import { PiButton, PiInput } from './common/PiComponents';
 
 const DisputeManager = () => {
   const [disputes, setDisputes] = useState([]);
